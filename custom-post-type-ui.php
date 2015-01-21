@@ -202,6 +202,7 @@ function cpt_create_custom_taxonomies() {
 			register_taxonomy( $cpt_tax_type["name"],
 				$cpt_post_types,
 				array( 'hierarchical' => get_disp_boolean($cpt_tax_type["hierarchical"]),
+				'sort' => true,
 				'label' => $cpt_label,
 				'show_ui' => get_disp_boolean($cpt_tax_type["show_ui"]),
 				'query_var' => get_disp_boolean($cpt_tax_type["query_var"]),
@@ -214,6 +215,115 @@ function cpt_create_custom_taxonomies() {
 		}
 	}
 }
+
+function cpt_is_int_array($array) {
+  return is_numeric(reset($array));
+}
+
+function cpt_single_param($param) {
+  $type = gettype($param);
+  return $type != 'array' && $type != 'object';
+}
+
+function cpt_term_taxonomy_ids($terms) {
+  if (cpt_is_int_array($terms))
+    return $terms;     // We already have an array of ttids.
+
+  $ttids = array();
+  foreach ($terms as &$term) {
+    array_push($ttids, $term->term_taxonomy_id);
+  }
+  return $ttids;
+}
+
+function cpt_query_terms_order($term_tax_ids, $id) {
+  global $wpdb;
+  $id_list = implode(', ', $term_tax_ids);
+  $query = "SELECT term_taxonomy_id, term_order FROM $wpdb->term_relationships WHERE term_taxonomy_id IN ({$id_list}) AND object_id = $id order by term_order";
+  return $wpdb->get_results($query);
+}
+
+function cpt_find_in($terms, $term_tax_id) {
+  if (cpt_is_int_array($terms)) {
+    if (in_array($term_tax_id, $terms))
+      return $term_tax_id;
+  } else {
+    foreach ($terms as $term) {
+      if ($term->term_taxonomy_id == $term_tax_id)
+        return $term;
+    }
+  }
+}
+
+function cpt_sorted_terms($terms, $id) {
+  $term_tax_ids = cpt_term_taxonomy_ids($terms);
+  $order = cpt_query_terms_order($term_tax_ids, $id);
+  $sorted = array();
+  foreach ($order as $pos) {
+    $term = cpt_find_in($terms, $pos->term_taxonomy_id);
+    array_push($sorted, $term);
+  }
+  return $sorted;
+}
+
+/**
+ * Sort post_tags by term_order
+ *
+ * @param array $terms array of objects to be replaced with sorted list
+ * @param integer $id post id
+ * @param string $taxonomy only 'post_tag' is changed.
+ * @return array of objects
+ */
+function cpt_get_ordered_terms_filter( $terms, $id, $taxonomy, $args ) {
+  if (cpt_single_param($id) && cpt_single_param($taxonomy)) {
+    // Double quotes around the authors string literal are required.
+    if ($taxonomy == "'authors'" && ! empty($terms)) {
+      $terms = cpt_sorted_terms($terms, $id);
+    }
+  }
+  return $terms;
+}
+
+function cpt_get_the_terms_filter ( $terms, $id, $taxonomy ) {
+       $terms = wp_cache_get($id, "{$taxonomy}_relationships_sorted");
+       if ( false === $terms ) {
+               $terms = wp_get_object_terms( $id, $taxonomy, array( 'orderby' => 'term_order' ) );
+               wp_cache_add($id, $terms, $taxonomy . '_relationships_sorted');
+       }
+       return $terms;
+}
+
+//Ensure get_the_terms() uses term_order : http://core.trac.wordpress.org/ticket/9547
+add_filter( 'wp_get_object_terms', 'cpt_get_ordered_terms_filter' , 10, 4 );
+add_filter('get_the_terms', 'cpt_get_the_terms_filter', 10, 4);
+
+/// Returns the field identifier for $field.
+function cpt_field_identifier($field) {
+	global $wpdb;
+	return $wpdb->get_var("SELECT DISTINCT meta_value FROM wp_postmeta WHERE meta_key = '{$field}'", 0, 0);
+}
+
+/**
+ * Executed every time a post is saved in order to ensure that the
+ * post publication date and the publication publication date stay
+ * in sync.
+ */
+function cpt_sync_publication_dates($data, $raw) {
+	if ($raw['post_type'] == 'publication' && isset($raw['fields'])) {
+		$day = '02';
+		$year = $raw['fields'][cpt_field_identifier('_year')];
+		$month = $raw['fields'][cpt_field_identifier('_month')];
+		if (empty($month) || $month == "null") {
+			$month = '01';
+			$day = '01';
+		}
+		$datetime = new DateTime("{$month}/{$day}/{$year}");
+		$data['post_date'] = $datetime->format('Y-m-d H:i:s');
+		$data['post_date_gmt'] = $datetime->format('Y-m-d H:i:s');
+	}
+	return $data;
+}
+add_filter('wp_insert_post_data', 'cpt_sync_publication_dates', 10, 2);
 
 //delete custom post type or custom taxonomy
 function cpt_delete_post_type() {
