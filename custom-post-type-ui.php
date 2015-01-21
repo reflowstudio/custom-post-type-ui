@@ -4,14 +4,14 @@ Plugin Name: Custom Post Type UI
 Plugin URI: http://webdevstudios.com/plugin/custom-post-type-ui/
 Description: Admin panel for creating custom post types and custom taxonomies in WordPress
 Author: WebDevStudios.com
-Version: 0.8.2
+Version: 0.8.5
 Author URI: http://webdevstudios.com/
 Text Domain: cpt-plugin
 License: GPLv2
 */
 
 // Define current version constant
-define( 'CPT_VERSION', '0.8.2' );
+define( 'CPT_VERSION', '0.8.5' );
 
 // Define current WordPress version constant
 define( 'CPTUI_WP_VERSION', get_bloginfo( 'version' ) );
@@ -94,14 +94,14 @@ function cpt_create_custom_post_types() {
 	if ( is_array( $cpt_post_types ) ) {
 		foreach ($cpt_post_types as $cpt_post_type) {
 			//set post type values
-            $cpt_label              = ( !empty( $cpt_post_type["label"] ) ) ? esc_html( $cpt_post_type["label"] ) : esc_html( $cpt_post_type["name"] ) ;
-            $cpt_singular           = ( !empty( $cpt_post_type["singular_label"] ) ) ? esc_html( $cpt_post_type["singular_label"] ) : esc_html( $cpt_label );
-            $cpt_rewrite_slug       = ( !empty( $cpt_post_type["rewrite_slug"] ) ) ? esc_html( $cpt_post_type["rewrite_slug"] ) : $cpt_post_type["name"];
-            $cpt_rewrite_withfront  = ( !empty( $cpt_post_type["rewrite_withfront"] ) ) ? true : get_disp_boolean( $cpt_post_type["rewrite_withfront"] ); //reversed because false is empty, and with_front option is true/false
-            $cpt_menu_position      = ( !empty( $cpt_post_type["menu_position"] ) ) ? intval( $cpt_post_type["menu_position"] ) : null; //must be null
-            $cpt_menu_icon          = ( !empty( $cpt_post_type["menu_icon"] ) ) ? esc_url( $cpt_post_type["menu_icon"] ) : null; //must be null
-            $cpt_taxonomies         = ( !empty( $cpt_post_type[1] ) ) ? $cpt_post_type[1] : array();
-            $cpt_supports           = ( !empty( $cpt_post_type[0] ) ) ? $cpt_post_type[0] : array();
+			$cpt_label              = ( !empty( $cpt_post_type["label"] ) ) ? esc_html( $cpt_post_type["label"] ) : esc_html( $cpt_post_type["name"] ) ;
+			$cpt_singular           = ( !empty( $cpt_post_type["singular_label"] ) ) ? esc_html( $cpt_post_type["singular_label"] ) : esc_html( $cpt_label );
+			$cpt_rewrite_slug       = ( !empty( $cpt_post_type["rewrite_slug"] ) ) ? esc_html( $cpt_post_type["rewrite_slug"] ) : esc_html( $cpt_post_type["name"] );
+			$cpt_rewrite_withfront  = ( !empty( $cpt_post_type["rewrite_withfront"] ) ) ? true : get_disp_boolean( $cpt_post_type["rewrite_withfront"] ); //reversed because false is empty
+			$cpt_menu_position      = ( !empty( $cpt_post_type["menu_position"] ) ) ? intval( $cpt_post_type["menu_position"] ) : null; //must be null
+			$cpt_menu_icon          = ( !empty( $cpt_post_type["menu_icon"] ) ) ? esc_attr( $cpt_post_type["menu_icon"] ) : null; //must be null
+			$cpt_taxonomies         = ( !empty( $cpt_post_type[1] ) ) ? $cpt_post_type[1] : array();
+			$cpt_supports           = ( !empty( $cpt_post_type[0] ) ) ? $cpt_post_type[0] : array();
 
 			//Show UI must be true
 			if ( true == get_disp_boolean( $cpt_post_type["show_ui"] ) ) {
@@ -115,12 +115,6 @@ function cpt_create_custom_post_types() {
 				$cpt_show_in_menu = false;
 			}
 
-			//Rewrite combination.
-			if ( false === (bool) $cpt_post_type["rewrite"] ) {
-				$rewrite = false;
-			} else {
-				$rewrite = array( 'slug' => $cpt_rewrite_slug, 'with_front' => $cpt_rewrite_withfront );
-			}
 			//set custom label values
 			$cpt_labels['name']             = $cpt_label;
 			$cpt_labels['singular_name']    = $cpt_post_type["singular_label"];
@@ -153,7 +147,7 @@ function cpt_create_custom_post_types() {
 				'map_meta_cap' => true,
 				'hierarchical' => get_disp_boolean($cpt_post_type["hierarchical"]),
 				'exclude_from_search' => $cpt_exclude_from_search,
-				'rewrite' => $rewrite,
+				'rewrite' => array( 'slug' => $cpt_rewrite_slug, 'with_front' => $cpt_rewrite_withfront ),
 				'query_var' => get_disp_boolean($cpt_post_type["query_var"]),
 				'description' => esc_html($cpt_post_type["description"]),
 				'menu_position' => $cpt_menu_position,
@@ -782,13 +776,13 @@ if ( isset($_GET['cpt_msg'] ) && $_GET['cpt_msg'] == 'del' ) { ?>
 						$custom_post_type   = '';
 						$cpt_support_array  = '';
 						$cpt_tax_array      = '';
+						$cpt_sanitized_name = str_replace( '-', '_', $cpt_post_type['name'] );
 
 						$cpt_label = ( empty( $cpt_post_type["label"] ) ) ? esc_html($cpt_post_type["name"]) : esc_html($cpt_post_type["label"]);
 						$cpt_singular = ( empty( $cpt_post_type["singular_label"] ) ) ? $cpt_label : esc_html($cpt_post_type["singular_label"]);
-						$cpt_rewrite_slug = ( empty( $cpt_post_type["rewrite_slug"] ) ) ? esc_html( $cpt_post_type["name"] ) : esc_html($cpt_post_type["rewrite_slug"]);
-						$cpt_rewrite_withfront = ( empty( $cpt_post_type['rewrite_withfront'] ) ) ? get_disp_boolean( $cpt_post_type['rewrite_withfront'] ) : 'true'; //not reversed because false is empty, making the assignment go to true
+						$cpt_rewrite_slug = ( empty( $cpt_post_type["rewrite_slug"] ) ) ? esc_html($cpt_post_type["name"]) : esc_html($cpt_post_type["rewrite_slug"]);
 						$cpt_menu_position = ( empty( $cpt_post_type["menu_position"] ) ) ? null : intval($cpt_post_type["menu_position"]);
-						$cpt_menu_icon = ( !empty( $cpt_post_type["menu_icon"] ) ) ? esc_url($cpt_post_type["menu_icon"]) : null;
+						$cpt_menu_icon = ( !empty( $cpt_post_type["menu_icon"] ) ) ? esc_attr($cpt_post_type["menu_icon"]) : null;
 
 						if ( true == $cpt_post_type["show_ui"] ) {
 							$cpt_show_in_menu = ( $cpt_post_type["show_in_menu"] == 1 ) ? 1 : 0;
@@ -811,19 +805,6 @@ if ( isset($_GET['cpt_msg'] ) && $_GET['cpt_msg'] == 'del' ) { ?>
 						$cpt_labels['not_found'] = ( $cpt_post_type[2]["not_found"] ) ? $cpt_post_type[2]["not_found"] : 'No ' .$cpt_label. ' Found';
 						$cpt_labels['not_found_in_trash'] = ( $cpt_post_type[2]["not_found_in_trash"] ) ? $cpt_post_type[2]["not_found_in_trash"] : 'No ' .$cpt_label. ' Found in Trash';
 						$cpt_labels['parent'] = ( $cpt_post_type[2]["parent"] ) ? $cpt_post_type[2]["parent"] : 'Parent ' .$cpt_singular;
-
-						if ( false == (bool)$cpt_post_type["rewrite"] ) {
-							$rewrite = 'false';
-						} else {
-							if ( !empty( $cpt_post_type["rewrite_slug"] ) ) {
-								$rewrite = "array('slug' => '" . $cpt_post_type["rewrite_slug"] . "', 'with_front' => " . $cpt_post_type['rewrite_withfront'] . "),\n";
-							} else {
-								if( empty( $cpt_post_type['rewrite_withfront'] ) )
-									$cpt_post_type['rewrite_withfront'] = 1;
-
-								$rewrite = "array('slug' => '" . $cpt_post_type["name"] . "', 'with_front' => " . disp_boolean( $cpt_post_type['rewrite_withfront'] ) . "),\n";
-							}
-						}
 
 						if( is_array( $cpt_post_type[0] ) ) {
 							$counter = 1;
@@ -849,8 +830,8 @@ if ( isset($_GET['cpt_msg'] ) && $_GET['cpt_msg'] == 'del' ) { ?>
 								$counter++;
 							}
 						}
-						$custom_post_type = "add_action('init', 'cptui_register_my_cpt_" . $cpt_post_type["name"] . "');\n";
-						$custom_post_type .= "function cptui_register_my_cpt_" . $cpt_post_type["name"] . "() {\n";
+						$custom_post_type = "add_action('init', 'cptui_register_my_cpt_" . $cpt_sanitized_name . "');\n";
+						$custom_post_type .= "function cptui_register_my_cpt_" . $cpt_sanitized_name . "() {\n";
 						$custom_post_type .= "register_post_type('" . $cpt_post_type["name"] . "', array(\n'label' => '" . $cpt_label . "',\n";
 						$custom_post_type .= "'description' => '" . $cpt_post_type["description"] . "',\n";
 						$custom_post_type .= "'public' => " . disp_boolean( $cpt_post_type["public"]) . ",\n";
@@ -859,7 +840,14 @@ if ( isset($_GET['cpt_msg'] ) && $_GET['cpt_msg'] == 'del' ) { ?>
 						$custom_post_type .= "'capability_type' => '" . $cpt_post_type["capability_type"] . "',\n";
 						$custom_post_type .= "'map_meta_cap' => " . disp_boolean( '1' ) . ",\n";
 						$custom_post_type .= "'hierarchical' => " . disp_boolean( $cpt_post_type["hierarchical"] ) . ",\n";
-						$custom_post_type .= "'rewrite' => " . $rewrite ."\n";
+
+						if ( !empty( $cpt_post_type["rewrite_slug"] ) ) {
+							$custom_post_type .= "'rewrite' => array('slug' => '" . $cpt_post_type["rewrite_slug"] . "', 'with_front' => " . $cpt_post_type['rewrite_withfront'] . "),\n";
+						} else {
+							if( empty( $cpt_post_type['rewrite_withfront'] ) ) $cpt_post_type['rewrite_withfront'] = 1;
+							$custom_post_type .= "'rewrite' => array('slug' => '" . $cpt_post_type["name"] . "', 'with_front' => " . disp_boolean( $cpt_post_type['rewrite_withfront'] ) . "),\n";
+						}
+
 						$custom_post_type .= "'query_var' => " . disp_boolean($cpt_post_type["query_var"]) . ",\n";
 
 						if ( !empty( $cpt_post_type["has_archive"] ) ) {
@@ -1067,10 +1055,11 @@ if (isset($_GET['cpt_msg']) && $_GET['cpt_msg']=='del') { ?>
 				<td colspan="10">
 					<div style="display:none;" id="slidepanel<?php echo $thecounter; ?>">
 						<?php
+						$cpt_tax_sanitized_name = str_replace( '-', '_', $cpt_tax_type['name'] );
 						//display register_taxonomy code
 						$custom_tax = '';
-						$custom_tax = "add_action('init', 'cptui_register_my_taxes_" . $cpt_tax_type['name'] . "');\n";
-						$custom_tax .= "function cptui_register_my_taxes_" . $cpt_tax_type['name'] . "() {\n";
+						$custom_tax = "add_action('init', 'cptui_register_my_taxes_" . $cpt_tax_sanitized_name . "');\n";
+						$custom_tax .= "function cptui_register_my_taxes_" . $cpt_tax_sanitized_name . "() {\n";
 
 						if ( !$cpt_tax_type["label"] ) {
 							$cpt_label = esc_html( $cpt_tax_type["name"] );
@@ -1519,7 +1508,7 @@ function cpt_add_new() {
 							</tr>
 
 							<tr valign="top">
-							<th scope="row"><?php _e('Menu Icon', 'cpt-plugin') ?> <a href="#" title="<?php esc_attr_e( 'URL to image to be used as menu icon.', 'cpt-plugin' ); ?>" class="help">?</a>
+							<th scope="row"><?php _e('Menu Icon', 'cpt-plugin') ?> <a href="#" title="<?php esc_attr_e( 'URL to image or dashicon class to be used as menu icon.', 'cpt-plugin' ); ?>" class="help">?</a>
 							</th>
 							<td><input type="text" name="cpt_custom_post_type[menu_icon]" size="20" value="<?php if (isset($cpt_menu_icon)) { echo esc_attr($cpt_menu_icon); } ?>" /> (Full URL for icon)</td>
 							</tr>
